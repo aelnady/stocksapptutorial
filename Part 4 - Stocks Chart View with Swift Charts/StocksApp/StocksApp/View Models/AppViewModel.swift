@@ -42,7 +42,7 @@ class AppViewModel: ObservableObject {
             do {
                 self.tickers = try await tickerListRepository.load()
             } catch {
-                print(error.localizedDescription)
+                error.logForDebug(context: "AppViewModel.loadTickers")
                 self.tickers = []
             }
         }
@@ -54,7 +54,7 @@ class AppViewModel: ObservableObject {
             do {
                 try await self.tickerListRepository.save(self.tickers)
             } catch {
-                print(error.localizedDescription)
+                error.logForDebug(context: "AppViewModel.saveTickers")
             }
         }
     }

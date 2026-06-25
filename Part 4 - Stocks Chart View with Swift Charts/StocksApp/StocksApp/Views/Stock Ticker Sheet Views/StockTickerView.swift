@@ -19,7 +19,7 @@ struct StockTickerView: View {
             headerView.padding(.horizontal)
             
             Divider()
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
                 .padding(.horizontal)
             scrollView
         }
@@ -77,7 +77,7 @@ struct StockTickerView: View {
         case .success(let data):
             ChartView(data: data, vm: chartVM)
         case .failure(let error):
-            ErrorStateView(error: "Chart: \(error.localizedDescription)")
+            ErrorStateView(error: error.userFriendlyMessage)
         default: EmptyView()
         }
     }
@@ -86,7 +86,7 @@ struct StockTickerView: View {
     private var quoteDetailRowView: some View {
         switch quoteVM.phase {
         case .fetching: LoadingStateView()
-        case .failure(let error): ErrorStateView(error: "Quote: \(error.localizedDescription)")
+        case .failure(let error): ErrorStateView(error: error.userFriendlyMessage)
                 .padding(.horizontal)
         case .success(let quote):
             ScrollView(.horizontal) {
@@ -165,32 +165,16 @@ struct StockTickerView: View {
     }
     
     private var headerView: some View {
-        HStack(alignment: .lastTextBaseline) {
+        HStack(alignment: .lastTextBaseline, spacing: 8) {
             Text(quoteVM.ticker.symbol).font(.title.bold())
             if let shortName = quoteVM.ticker.shortname {
                 Text(shortName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(Color(uiColor: .secondaryLabel))
+                    .lineLimit(1)
             }
             Spacer()
-            closeButton
         }
-    }
-    
-    private var closeButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Circle()
-                .frame(width: 36, height: 36)
-                .foregroundColor(.gray.opacity(0.1))
-                .overlay {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 18).bold())
-                        .foregroundColor(Color(uiColor: .secondaryLabel))
-                }
-        }
-        .buttonStyle(.plain)
     }
 }
 

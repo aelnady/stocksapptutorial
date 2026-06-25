@@ -48,7 +48,7 @@ struct SearchView: View {
     private var listSearchOverlay: some View {
         switch searchVM.phase {
         case .failure(let error):
-            ErrorStateView(error: error.localizedDescription) {
+            ErrorStateView(error: error.userFriendlyMessage) {
                 Task { await searchVM.searchTickers() }
             }
         case .empty:

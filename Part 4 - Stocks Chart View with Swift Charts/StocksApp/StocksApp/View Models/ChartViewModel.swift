@@ -82,6 +82,7 @@ class ChartViewModel: ObservableObject {
                 fetchPhase = .empty
             }
         } catch {
+            error.logForDebug(context: "ChartViewModel.fetchData")
             fetchPhase = .failure(error)
         }
     }

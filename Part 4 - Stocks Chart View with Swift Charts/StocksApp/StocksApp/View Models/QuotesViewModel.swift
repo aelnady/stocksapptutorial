@@ -28,8 +28,12 @@ class QuotesViewModel: ObservableObject {
             quotes.forEach { dict[$0.symbol] = $0 }
             self.quotesDict = dict
         } catch {
-            print(error.localizedDescription)
+            error.logForDebug(context: "QuotesViewModel.fetchQuotes")
         }
+    }
+    
+    func quoteForTicker(_ ticker: Ticker) -> Quote? {
+        quotesDict[ticker.symbol]
     }
     
     func priceForTicker(_ ticker: Ticker) -> PriceChange? {
@@ -41,5 +45,4 @@ class QuotesViewModel: ObservableObject {
     }
     
 }
-
 

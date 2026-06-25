@@ -67,7 +67,7 @@ class SearchViewModel: ObservableObject {
             }
         } catch {
             if searchQuery != trimmedQuery { return }
-            print(error.localizedDescription)
+            error.logForDebug(context: "SearchViewModel.searchTickers")
             phase = .failure(error)
         }
     }

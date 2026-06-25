@@ -8,6 +8,31 @@
 import Foundation
 import XCAStocksAPI
 
+extension Error {
+    
+    var userFriendlyMessage: String {
+        if let apiError = self as? APIServiceError {
+            switch apiError {
+            case .invalidURL, .invalidResponseType:
+                return "Market data is temporarily unavailable."
+            case let .httpStatusCodeFailed(statusCode, error):
+                if statusCode == 401 || error?.code.localizedCaseInsensitiveContains("unauthorized") == true {
+                    return "Quote details are temporarily unavailable."
+                }
+                return "Unable to load market data. Please try again."
+            }
+        }
+        
+        return "Something went wrong. Please try again."
+    }
+    
+    func logForDebug(context: String) {
+        #if DEBUG
+        print("[\(context)] \(localizedDescription)")
+        #endif
+    }
+}
+
 extension Double {
     
     //https://stackoverflow.com/questions/18267211/ios-convert-large-numbers-to-smaller-format

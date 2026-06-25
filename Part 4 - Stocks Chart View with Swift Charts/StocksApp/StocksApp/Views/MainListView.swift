@@ -18,14 +18,14 @@ struct MainListView: View {
         tickerListView
             .listStyle(.plain)
             .overlay { overlayView }
-            .toolbar {
-                titleToolbar
-                attributionToolbar
-            }
-            .searchable(text: $searchVM.query)
+            .navigationTitle(appVM.subtitleText)
+            .navigationBarTitleDisplayMode(.large)
+            .searchable(text: $searchVM.query, placement: .navigationBarDrawer(displayMode: .always))
             .refreshable { await quotesVM.fetchQuotes(tickers: appVM.tickers) }
             .sheet(item: $appVM.selectedTicker) {
-                StockTickerView(chartVM: ChartViewModel(ticker: $0, apiService: quotesVM.stocksAPI), quoteVM: .init(ticker: $0, stocksAPI: quotesVM.stocksAPI))
+                StockTickerView(
+                    chartVM: ChartViewModel(ticker: $0, apiService: quotesVM.stocksAPI),
+                    quoteVM: .init(ticker: $0, stocksAPI: quotesVM.stocksAPI, initialQuote: quotesVM.quoteForTicker($0)))
                     .presentationDetents([.height(560)])
             }
             .task(id: appVM.tickers) { await quotesVM.fetchQuotes(tickers: appVM.tickers) }
@@ -58,32 +58,6 @@ struct MainListView: View {
         
         if searchVM.isSearching {
             SearchView(searchVM: searchVM)
-        }
-    }
-    
-    private var titleToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            VStack(alignment: .leading, spacing: -4) {
-                Text(appVM.titleText)
-                Text(appVM.subtitleText).foregroundColor(Color(uiColor: .secondaryLabel))
-            }.font(.title2.weight(.heavy))
-                .padding(.bottom)
-        }
-    }
-    
-    private var attributionToolbar: some ToolbarContent {
-        ToolbarItem(placement: .bottomBar) {
-            HStack {
-                Button {
-                    appVM.openYahooFinance()
-                } label: {
-                    Text(appVM.attributionText)
-                        .font(.caption.weight(.heavy))
-                        .foregroundColor(Color(uiColor: .secondaryLabel))
-                }
-                .buttonStyle(.plain)
-                Spacer()
-            }
         }
     }
 }
