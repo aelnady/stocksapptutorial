@@ -103,6 +103,12 @@ This is a SwiftUI stocks app for searching tickers, maintaining a watchlist, vie
 ## 13. Documentation Expectations
 
 - Update this guide when adding major architectural conventions.
+- Use `docs/PRODUCT.md` for product direction, target users, feature scope, and success metrics.
+- Use `docs/ROADMAP.md` for milestone planning and implementation sequencing.
+- Use `docs/UI_PLAYBOOK.md` for design language, native SwiftUI UX, accessibility, and component consistency.
+- Use `docs/AI_PLAYBOOK.md` for AI strategy, response style, safety, prompt design, caching, cost, and privacy.
+- Use `docs/API_PLAYBOOK.md` for API integration strategy, dependency injection, caching, rate limits, errors, and migrations.
+- Use `docs/RELEASE_NOTES.md`, `docs/IDEAS.md`, and `docs/DECISIONS.md` to track changes, backlog ideas, and important decisions.
 - Document new service protocols with concise comments only when the purpose is not obvious.
 - Explain new AI features, required configuration, and mock behavior.
 - Keep documentation practical and close to the code it describes.
