@@ -89,8 +89,6 @@ extension Quote {
                 QuoteDetailRowColumnItem.RowItem(title: "P/E", value: peText),
                 QuoteDetailRowColumnItem.RowItem(title: "Mkt Cap", value: mktCapText)
             ]), QuoteDetailRowColumnItem(rows: [
-                QuoteDetailRowColumnItem.RowItem(title: "52W H", value: fiftyTwoWHText),
-                QuoteDetailRowColumnItem.RowItem(title: "52W L", value: fiftyTwoWLText),
                 QuoteDetailRowColumnItem.RowItem(title: "Avg Vol", value: avgVolText)
             ]), QuoteDetailRowColumnItem(rows: [
                 QuoteDetailRowColumnItem.RowItem(title: "Yield", value: yieldText),

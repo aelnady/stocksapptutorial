@@ -59,6 +59,10 @@ struct StockTickerView: View {
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, minHeight: 220)
             
+            fiftyTwoWeekRangeView
+                .padding(.horizontal)
+                .padding(.top, 12)
+            
             Divider().padding([.horizontal, .top])
             
             quoteDetailRowView
@@ -79,6 +83,20 @@ struct StockTickerView: View {
         case .failure(let error):
             ErrorStateView(error: error.userFriendlyMessage)
         default: EmptyView()
+        }
+    }
+    
+    @ViewBuilder
+    private var fiftyTwoWeekRangeView: some View {
+        if let quote = quoteVM.quote,
+           let currentPrice = quote.regularMarketPrice,
+           let week52Low = quote.fiftyTwoWeekLow,
+           let week52High = quote.fiftyTwoWeekHigh {
+            FiftyTwoWeekRangeView(
+                currentPrice: currentPrice,
+                week52Low: week52Low,
+                week52High: week52High
+            )
         }
     }
     

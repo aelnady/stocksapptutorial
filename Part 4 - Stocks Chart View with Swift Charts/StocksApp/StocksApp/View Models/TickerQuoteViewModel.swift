@@ -33,7 +33,7 @@ class TickerQuoteViewModel: ObservableObject {
         do {
             let response = try await stocksAPI.fetchQuotes(symbols: ticker.symbol)
             if let quote = response.first {
-                phase = .success(quote)
+                phase = .success(await quoteWithFiftyTwoWeekRangeIfNeeded(quote))
             } else {
                 phase = .empty
             }
@@ -52,7 +52,7 @@ class TickerQuoteViewModel: ObservableObject {
                 return
             }
             
-            phase = .success(fallbackQuote)
+            phase = .success(await quoteWithFiftyTwoWeekRangeIfNeeded(fallbackQuote))
         } catch {
             error.logForDebug(context: "TickerQuoteViewModel.fetchQuoteFromChartData")
             phase = .failure(fallbackError)
@@ -77,6 +77,70 @@ class TickerQuoteViewModel: ObservableObject {
             regularMarketOpen: chartData.indicators.first?.open,
             regularMarketDayHigh: chartData.indicators.map(\.high).max(),
             regularMarketDayLow: chartData.indicators.map(\.low).min()
+        )
+    }
+    
+    private func quoteWithFiftyTwoWeekRangeIfNeeded(_ quote: Quote) async -> Quote {
+        guard quote.fiftyTwoWeekLow == nil || quote.fiftyTwoWeekHigh == nil else {
+            return quote
+        }
+        
+        do {
+            guard let range = try await fetchFiftyTwoWeekRange() else {
+                return quote
+            }
+            
+            return copyQuote(
+                quote,
+                fiftyTwoWeekLow: quote.fiftyTwoWeekLow ?? range.low,
+                fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh ?? range.high
+            )
+        } catch {
+            error.logForDebug(context: "TickerQuoteViewModel.quoteWithFiftyTwoWeekRangeIfNeeded")
+            return quote
+        }
+    }
+    
+    private func fetchFiftyTwoWeekRange() async throws -> (low: Double, high: Double)? {
+        guard let chartData = try await stocksAPI.fetchChartData(tickerSymbol: ticker.symbol, range: .oneYear) else {
+            return nil
+        }
+        
+        guard let low = chartData.indicators.map(\.low).min(),
+              let high = chartData.indicators.map(\.high).max(),
+              high > low
+        else {
+            return nil
+        }
+        
+        return (low, high)
+    }
+    
+    private func copyQuote(_ quote: Quote, fiftyTwoWeekLow: Double?, fiftyTwoWeekHigh: Double?) -> Quote {
+        Quote(
+            symbol: quote.symbol,
+            currency: quote.currency,
+            marketState: quote.marketState,
+            fullExchangeName: quote.fullExchangeName,
+            displayName: quote.displayName,
+            regularMarketPrice: quote.regularMarketPrice,
+            regularMarketChange: quote.regularMarketChange,
+            regularMarketChangePercent: quote.regularMarketChangePercent,
+            regularMarketChangePreviousClose: quote.regularMarketChangePreviousClose,
+            regularMarketTime: quote.regularMarketTime,
+            postMarketPrice: quote.postMarketPrice,
+            postMarketChange: quote.postMarketChange,
+            regularMarketOpen: quote.regularMarketOpen,
+            regularMarketDayHigh: quote.regularMarketDayHigh,
+            regularMarketDayLow: quote.regularMarketDayLow,
+            regularMarketVolume: quote.regularMarketVolume,
+            trailingPE: quote.trailingPE,
+            marketCap: quote.marketCap,
+            fiftyTwoWeekLow: fiftyTwoWeekLow,
+            fiftyTwoWeekHigh: fiftyTwoWeekHigh,
+            averageDailyVolume3Month: quote.averageDailyVolume3Month,
+            trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
+            epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths
         )
     }
     
