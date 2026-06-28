@@ -78,7 +78,8 @@ struct StockTickerView: View {
                 marketCapText: quoteVM.quote?.mktCapText ?? "-",
                 industry: quoteVM.companyIndustry,
                 fullTimeEmployees: quoteVM.fullTimeEmployees,
-                comparableStocks: quoteVM.comparableStocks
+                comparableStocks: quoteVM.comparableStocks,
+                description: quoteVM.companyDescription
             )
             .padding(.horizontal)
             .padding(.top, 10)
