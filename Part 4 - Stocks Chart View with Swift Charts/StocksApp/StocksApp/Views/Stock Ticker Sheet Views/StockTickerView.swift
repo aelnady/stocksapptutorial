@@ -83,6 +83,15 @@ struct StockTickerView: View {
             )
             .padding(.horizontal)
             .padding(.top, 10)
+            
+            CompanyInsightsCard(
+                companyName: companyDisplayName,
+                summary: quoteVM.companyInsight.summary,
+                positives: quoteVM.companyInsight.positives,
+                watchItems: quoteVM.companyInsight.watchItems
+            )
+            .padding(.horizontal)
+            .padding(.top, 10)
             .padding(.bottom, 16)
                 
         }

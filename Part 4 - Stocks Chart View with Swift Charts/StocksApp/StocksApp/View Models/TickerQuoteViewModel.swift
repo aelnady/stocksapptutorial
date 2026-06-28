@@ -19,6 +19,9 @@ class TickerQuoteViewModel: ObservableObject {
     @Published var comparableStocks: [String] = []
     var quote: Quote? { phase.value }
     var error: Error? { phase.error }
+    var companyInsight: CompanyInsight {
+        CompanyInsight.placeholder(companyName: ticker.shortname ?? ticker.symbol, symbol: ticker.symbol)
+    }
     
     let ticker: Ticker
     let stocksAPI: StocksAPI
@@ -204,6 +207,49 @@ class TickerQuoteViewModel: ObservableObject {
             averageDailyVolume3Month: averageDailyVolume3Month ?? quote.averageDailyVolume3Month,
             trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
             epsTrailingTwelveMonths: epsTrailingTwelveMonths ?? quote.epsTrailingTwelveMonths
+        )
+    }
+    
+}
+
+struct CompanyInsight {
+    
+    let summary: String
+    let positives: [String]
+    let watchItems: [String]
+    
+    static func placeholder(companyName: String, symbol: String) -> CompanyInsight {
+        let displayName = companyName
+            .replacingOccurrences(of: " Inc.", with: "")
+            .replacingOccurrences(of: " Corporation", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if symbol.uppercased() == "QBTS" {
+            return CompanyInsight(
+                summary: "D-Wave is an early quantum computing company focused on solving complex optimization problems.",
+                positives: [
+                    "Early player in quantum computing",
+                    "Focuses on real-world optimization problems",
+                    "Works with enterprise and government customers"
+                ],
+                watchItems: [
+                    "Quantum computing adoption is still early",
+                    "Revenue growth and customer wins remain important"
+                ]
+            )
+        }
+        
+        return CompanyInsight(
+            summary: "\(displayName) is being watched by investors for its market position, growth potential, and recent business momentum.",
+            positives: [
+                "Has a clear business focus investors can follow",
+                "May benefit if demand in its industry grows",
+                "Comparable companies give investors a way to benchmark performance"
+            ],
+            watchItems: [
+                "Future revenue growth and profitability remain important",
+                "Stock performance can change quickly with news and market sentiment"
+            ]
         )
     }
     
