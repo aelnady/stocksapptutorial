@@ -28,6 +28,8 @@ struct StockTickerView: View {
         .task(id: chartVM.selectedRange.rawValue) {
             if quoteVM.quote == nil {
                 await quoteVM.fetchQuote()
+            } else {
+                await quoteVM.enrichQuoteIfNeeded()
             }
             await chartVM.fetchData()
         }
@@ -59,16 +61,29 @@ struct StockTickerView: View {
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, minHeight: 220)
             
-            fiftyTwoWeekRangeView
+            periodRangeView
                 .padding(.horizontal)
                 .padding(.top, 12)
             
-            Divider().padding([.horizontal, .top])
+            fiftyTwoWeekRangeView
+                .padding(.horizontal)
+                .padding(.top, 10)
             
-            quoteDetailRowView
-                .frame(maxWidth: .infinity, minHeight: 80)
+            volumeComparisonView
+                .padding(.horizontal)
+                .padding(.top, 10)
             
-            
+            CompanyDescriptionCard(
+                companyName: companyDisplayName,
+                marketCapText: quoteVM.quote?.mktCapText ?? "-",
+                industry: quoteVM.companyIndustry,
+                fullTimeEmployees: quoteVM.fullTimeEmployees,
+                comparableStocks: quoteVM.comparableStocks
+            )
+            .padding(.horizontal)
+            .padding(.top, 10)
+            .padding(.bottom, 16)
+                
         }
         .scrollIndicators(.hidden)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,98 +116,371 @@ struct StockTickerView: View {
     }
     
     @ViewBuilder
-    private var quoteDetailRowView: some View {
+    private var volumeComparisonView: some View {
         switch quoteVM.phase {
         case .fetching: LoadingStateView()
         case .failure(let error): ErrorStateView(error: error.userFriendlyMessage)
                 .padding(.horizontal)
         case .success(let quote):
-            ScrollView(.horizontal) {
-                HStack(spacing: 16) {
-                    ForEach(quote.columnItems) {
-                        QuoteDetailRowColumnView(item: $0)
-                    }
-                }
-                .padding(.horizontal)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-            }
-            .scrollIndicators(.hidden)
-    
-            
+            VolumeComparisonView(
+                volume: quote.regularMarketVolume,
+                averageVolume: quote.averageDailyVolume3Month
+            )
         default: EmptyView()
         }
     }
     
     private var priceDiffRowView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let quote = quoteVM.quote {
-                HStack {
-                    if quote.isTrading,
-                       let price = quote.regularPriceText,
-                       let diff = quote.regularDiffText {
-                        priceDiffStackView(price: price, diff: diff, caption: nil)
-                    } else {
-                        if let atCloseText = quote.regularPriceText,
-                           let atCloseDiffText = quote.regularDiffText {
-                            priceDiffStackView(price: atCloseText, diff: atCloseDiffText, caption: "At Close")
-                        }
-                        
-                        if let afterHourText = quote.postPriceText,
-                           let afterHourDiffText = quote.postPriceDiffText {
-                            priceDiffStackView(price: afterHourText, diff: afterHourDiffText, caption: "After Hours")
-                        }
-                    }
-                    
-                    Spacer()
-                }
-            }
-            exchangeCurrencyView
-        }
-    }
-    
-    private var exchangeCurrencyView: some View {
-        HStack(spacing: 4) {
-            if let exchange = quoteVM.ticker.exchDisp {
-                Text(exchange)
+        HStack {
+            if let currentPrice = currentPrice {
+                priceDiffStackView(
+                    price: Utils.format(value: currentPrice) ?? "-",
+                    performance: periodPerformance(currentPrice: currentPrice)
+                )
             }
             
-            if let currency = quoteVM.quote?.currency {
-                Text("·")
-                Text(currency)
-            }
+            Spacer()
         }
-        .font(.subheadline.weight(.semibold))
-        .foregroundColor(Color(uiColor: .secondaryLabel))
+        .animation(.easeInOut(duration: 0.25), value: chartVM.chart?.id)
+        .animation(.easeInOut(duration: 0.25), value: chartVM.selectedRange.rawValue)
     }
     
-    private func priceDiffStackView(price: String, diff: String, caption: String?) -> some View {
+    @ViewBuilder
+    private var periodRangeView: some View {
+        if let low = chartVM.periodLow,
+           let high = chartVM.periodHigh,
+           let currentPrice {
+            SelectedPeriodRangeView(
+                title: "\(chartVM.selectedRange.title) Range",
+                currentPrice: currentPrice,
+                periodLow: low,
+                periodHigh: high
+            )
+        }
+    }
+    
+    private func priceDiffStackView(price: String, performance: PeriodPerformance?) -> some View {
         VStack(alignment: .leading) {
             HStack(alignment: .lastTextBaseline, spacing: 16) {
                 Text(price).font(.headline.bold())
-                Text(diff).font(.subheadline.weight(.semibold))
-                    .foregroundColor(diff.hasPrefix("-") ? .red : .green)
-            }
-            
-            if let caption {
-                Text(caption)
+                
+                Text(performance?.text ?? "-")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Color(uiColor: .secondaryLabel))
+                    .foregroundColor(performance?.color ?? Color(uiColor: .secondaryLabel))
             }
         }
+    }
+    
+    private var currentPrice: Double? {
+        quoteVM.quote?.regularMarketPrice ?? chartVM.chart?.items.last?.value
+    }
+    
+    private var companyDisplayName: String {
+        let name = quoteVM.ticker.shortname ?? quoteVM.ticker.symbol
+        let suffixes = [
+            " Inc.",
+            " Incorporated",
+            " Corporation",
+            " Corp.",
+            " Company",
+            " Co.",
+            " Ltd.",
+            " Limited",
+            " PLC",
+            " plc"
+        ]
+        
+        return suffixes.reduce(name) { currentName, suffix in
+            currentName.hasSuffix(suffix) ? String(currentName.dropLast(suffix.count)) : currentName
+        }
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private func periodPerformance(currentPrice: Double) -> PeriodPerformance? {
+        guard let startPrice = chartVM.chart?.periodSummary?.startPrice,
+              startPrice != 0
+        else {
+            return nil
+        }
+        
+        let change = currentPrice - startPrice
+        let percent = change / startPrice * 100
+        let changeText = signedPriceText(change)
+        let percentText = String(format: "%+.2f%%", percent)
+        return PeriodPerformance(
+            text: "\(changeText) (\(percentText))",
+            color: change < 0 ? .red : .green
+        )
+    }
+    
+    private func signedPriceText(_ value: Double) -> String {
+        let formattedValue = Utils.format(value: abs(value)) ?? String(format: "%.2f", abs(value))
+        return value < 0 ? "-\(formattedValue)" : "+\(formattedValue)"
     }
     
     private var headerView: some View {
         HStack(alignment: .lastTextBaseline, spacing: 8) {
             Text(quoteVM.ticker.symbol).font(.title.bold())
             if let shortName = quoteVM.ticker.shortname {
-                Text(shortName)
+                let exchangeText = quoteVM.ticker.exchDisp.map { " (\($0))" } ?? ""
+                Text("\(shortName)\(exchangeText)")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(Color(uiColor: .secondaryLabel))
                     .lineLimit(1)
             }
             Spacer()
         }
+    }
+}
+
+private struct PeriodPerformance {
+    
+    let text: String
+    let color: Color
+    
+}
+
+private struct VolumeComparisonView: View {
+    
+    let volume: Double?
+    let averageVolume: Double?
+    
+    private struct DisplayUnit {
+        let threshold: Double
+        let divisor: Double
+        let suffix: String
+    }
+    
+    private static let displayUnits = [
+        DisplayUnit(threshold: 0, divisor: 1, suffix: ""),
+        DisplayUnit(threshold: 1_000, divisor: 1_000, suffix: "K"),
+        DisplayUnit(threshold: 100_000, divisor: 1_000_000, suffix: "M"),
+        DisplayUnit(threshold: 100_000_000, divisor: 1_000_000_000, suffix: "B"),
+        DisplayUnit(threshold: 100_000_000_000, divisor: 1_000_000_000_000, suffix: "T")
+    ]
+    
+    private var ratio: Double? {
+        guard let volume,
+              let averageVolume,
+              averageVolume > 0
+        else {
+            return nil
+        }
+        
+        return volume / averageVolume
+    }
+    
+    private var progress: Double {
+        guard let ratio else { return 0 }
+        return min(max(ratio, 0), 1.5) / 1.5
+    }
+    
+    private var sharedDisplayUnit: DisplayUnit? {
+        guard let volume,
+              let averageVolume
+        else {
+            return nil
+        }
+        
+        let smallestValue = min(abs(volume), abs(averageVolume))
+        return Self.displayUnits.last { smallestValue >= $0.threshold }
+    }
+    
+    private var ratioText: String {
+        guard let ratio else { return "Unavailable" }
+        return "\(ratio.formatted(.percent.precision(.fractionLength(0)))) of avg"
+    }
+    
+    private var volumeText: String {
+        formattedVolume(volume)
+    }
+    
+    private var averageVolumeText: String {
+        formattedVolume(averageVolume)
+    }
+    
+    private func formattedVolume(_ value: Double?) -> String {
+        guard let value else { return "-" }
+        guard let sharedDisplayUnit else {
+            return value.formatUsingAbbrevation()
+        }
+        
+        let formatter = NumberFormatter()
+        formatter.allowsFloats = true
+        formatter.minimumIntegerDigits = 1
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 3
+        formatter.decimalSeparator = ","
+        formatter.positiveSuffix = sharedDisplayUnit.suffix
+        formatter.negativeSuffix = sharedDisplayUnit.suffix
+        
+        let displayValue = value / sharedDisplayUnit.divisor
+        return formatter.string(from: NSNumber(value: displayValue)) ?? "-"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                Text("Volume")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Color(uiColor: .label))
+                
+                Spacer(minLength: 12)
+                
+                Text(ratioText)
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(Color(uiColor: .secondaryLabel))
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
+            }
+            
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                    
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: proxy.size.width * progress)
+                }
+            }
+            .frame(height: 8)
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: progress)
+            
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Today")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(Color(uiColor: .secondaryLabel))
+                    Text(volumeText)
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(Color(uiColor: .label))
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Avg Vol")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(Color(uiColor: .secondaryLabel))
+                    Text(averageVolumeText)
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(Color(uiColor: .label))
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Volume \(volumeText), average volume \(averageVolumeText)")
+    }
+}
+
+private struct SelectedPeriodRangeView: View {
+    
+    let title: String
+    let currentPrice: Double
+    let periodLow: Double
+    let periodHigh: Double
+    
+    private var progress: Double {
+        guard periodHigh > periodLow else { return 0 }
+        let rawValue = (currentPrice - periodLow) / (periodHigh - periodLow)
+        return min(max(rawValue, 0), 1)
+    }
+    
+    private var percentText: String {
+        progress.formatted(.percent.precision(.fractionLength(0)))
+    }
+    
+    private var currentPriceText: String {
+        Utils.format(value: currentPrice) ?? "-"
+    }
+    
+    private var lowText: String {
+        Utils.format(value: periodLow) ?? "-"
+    }
+    
+    private var highText: String {
+        Utils.format(value: periodHigh) ?? "-"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Color(uiColor: .label))
+                
+                Spacer(minLength: 12)
+                
+                Text("\(percentText) of range")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(Color(uiColor: .secondaryLabel))
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
+            }
+            
+            HStack(alignment: .top, spacing: 8) {
+                Text(lowText)
+                    .frame(width: 54, alignment: .leading)
+                
+                rangeBarView
+                    .frame(height: 36)
+                
+                Text(highText)
+                    .frame(width: 54, alignment: .trailing)
+            }
+            .font(.caption.weight(.bold))
+            .foregroundColor(Color(uiColor: .label))
+        }
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: progress)
+    }
+    
+    private var rangeBarView: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let markerRadius = 8.0
+            let markerX = markerRadius + ((width - markerRadius * 2) * progress)
+            let priceLabelX = min(max(markerX, 28), max(28, width - 28))
+            
+            ZStack(alignment: .topLeading) {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [.red.opacity(0.75), .yellow.opacity(0.75), .green.opacity(0.75)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 7)
+                    .position(x: width / 2, y: 9)
+                
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 15, height: 15)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                    )
+                    .shadow(color: Color.black.opacity(0.18), radius: 3, y: 1)
+                    .position(x: markerX, y: 9)
+                
+                Text(currentPriceText)
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .foregroundColor(Color(uiColor: .secondaryLabel))
+                    .position(x: priceLabelX, y: 27)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

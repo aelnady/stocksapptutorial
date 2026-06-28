@@ -28,6 +28,22 @@ extension ChartRange: Identifiable {
         }
     }
     
+    var summaryTitle: String {
+        switch self {
+        case .oneDay: return "Today"
+        case .oneWeek: return "Past Week"
+        case .oneMonth: return "Past Month"
+        case .threeMonth: return "Past 3 Months"
+        case .sixMonth: return "Past 6 Months"
+        case .ytd: return "Year to Date"
+        case .oneYear: return "Past Year"
+        case .twoYear: return "Past 2 Years"
+        case .fiveYear: return "Past 5 Years"
+        case .tenYear: return "Past 10 Years"
+        case .max: return "All Time"
+        }
+    }
+    
     var dateFormat: String {
         switch self {
         case .oneDay: return "H"

@@ -16,6 +16,7 @@ struct ChartViewData: Identifiable {
     let items: [ChartViewItem]
     let lineColor: Color
     let previousCloseRuleMarkValue: Double?
+    let periodSummary: ChartPeriodSummary?
     
 }
 
@@ -33,5 +34,14 @@ struct ChartAxisData {
     let axisEnd: Double
     let strideBy: Double
     let map: [String: String]
+    
+}
+
+struct ChartPeriodSummary {
+    
+    let title: String
+    let startPrice: Double
+    let low: Double
+    let high: Double
     
 }

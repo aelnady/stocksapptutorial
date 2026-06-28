@@ -13,6 +13,7 @@
 		8B3069622931EFDC00EFF82B /* Chart+Stubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3069612931EFDC00EFF82B /* Chart+Stubs.swift */; };
 		8B3069642931F0C400EFF82B /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3069632931F0C400EFF82B /* ChartView.swift */; };
 		8B3069662931F0C400EFF82B /* FiftyTwoWeekRangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3069652931F0C400EFF82B /* FiftyTwoWeekRangeView.swift */; };
+		8B3069682932A4B000EFF82B /* CompanyDescriptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3069672932A4B000EFF82B /* CompanyDescriptionCard.swift */; };
 		8B815EDE28E8431D003EF852 /* StocksApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B815EDD28E8431D003EF852 /* StocksApp.swift */; };
 		8B815EE028E8431D003EF852 /* MainListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B815EDF28E8431D003EF852 /* MainListView.swift */; };
 		8B815EE228E8431D003EF852 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B815EE128E8431D003EF852 /* Assets.xcassets */; };
@@ -49,6 +50,7 @@
 		8B3069612931EFDC00EFF82B /* Chart+Stubs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Chart+Stubs.swift"; sourceTree = "<group>"; };
 		8B3069632931F0C400EFF82B /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		8B3069652931F0C400EFF82B /* FiftyTwoWeekRangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FiftyTwoWeekRangeView.swift; sourceTree = "<group>"; };
+		8B3069672932A4B000EFF82B /* CompanyDescriptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanyDescriptionCard.swift; sourceTree = "<group>"; };
 		8B815EDA28E8431D003EF852 /* StocksApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StocksApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B815EDD28E8431D003EF852 /* StocksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StocksApp.swift; sourceTree = "<group>"; };
 		8B815EDF28E8431D003EF852 /* MainListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainListView.swift; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				8B888C5028FBAF2A005708CF /* QuoteDetailRowColumnView.swift */,
 				8B3069632931F0C400EFF82B /* ChartView.swift */,
 				8B3069652931F0C400EFF82B /* FiftyTwoWeekRangeView.swift */,
+				8B3069672932A4B000EFF82B /* CompanyDescriptionCard.swift */,
 			);
 			path = "Stock Ticker Sheet Views";
 			sourceTree = "<group>";
@@ -301,6 +304,7 @@
 				8B815EE028E8431D003EF852 /* MainListView.swift in Sources */,
 				8B3069642931F0C400EFF82B /* ChartView.swift in Sources */,
 				8B3069662931F0C400EFF82B /* FiftyTwoWeekRangeView.swift in Sources */,
+				8B3069682932A4B000EFF82B /* CompanyDescriptionCard.swift in Sources */,
 				8B888C4F28FBAB90005708CF /* ChartRange+Extensions.swift in Sources */,
 				8B30695C2931D68000EFF82B /* ChartViewModel.swift in Sources */,
 				8B815F0228E84D88003EF852 /* QuotesViewModel.swift in Sources */,

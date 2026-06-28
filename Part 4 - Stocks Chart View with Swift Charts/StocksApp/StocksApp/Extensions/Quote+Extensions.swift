@@ -78,25 +78,4 @@ extension Quote {
         Utils.format(value: epsTrailingTwelveMonths) ?? "-"
     }
     
-    var columnItems: [QuoteDetailRowColumnItem] {
-        [
-            QuoteDetailRowColumnItem(rows: [
-                QuoteDetailRowColumnItem.RowItem(title: "Open", value: openText),
-                QuoteDetailRowColumnItem.RowItem(title: "High", value: highText),
-                QuoteDetailRowColumnItem.RowItem(title: "Low", value: lowText)
-            ]), QuoteDetailRowColumnItem(rows: [
-                QuoteDetailRowColumnItem.RowItem(title: "Vol", value: volText),
-                QuoteDetailRowColumnItem.RowItem(title: "P/E", value: peText),
-                QuoteDetailRowColumnItem.RowItem(title: "Mkt Cap", value: mktCapText)
-            ]), QuoteDetailRowColumnItem(rows: [
-                QuoteDetailRowColumnItem.RowItem(title: "Avg Vol", value: avgVolText)
-            ]), QuoteDetailRowColumnItem(rows: [
-                QuoteDetailRowColumnItem.RowItem(title: "Yield", value: yieldText),
-                QuoteDetailRowColumnItem.RowItem(title: "Beta", value: betaText),
-                QuoteDetailRowColumnItem.RowItem(title: "EPS", value: epsText)
-            ])
-        ]
-    }
-    
-    
 }

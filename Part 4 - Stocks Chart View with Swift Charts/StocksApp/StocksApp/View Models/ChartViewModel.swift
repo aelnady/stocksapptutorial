@@ -15,6 +15,9 @@ class ChartViewModel: ObservableObject {
     
     @Published var fetchPhase = FetchPhase<ChartViewData>.initial
     var chart: ChartViewData? { fetchPhase.value }
+    var periodSummaryTitle: String? { chart?.periodSummary?.title }
+    var periodLow: Double? { chart?.periodSummary?.low }
+    var periodHigh: Double? { chart?.periodSummary?.high }
     
     let ticker: Ticker
     let apiService: StocksAPI
@@ -95,7 +98,8 @@ class ChartViewModel: ObservableObject {
             yAxisData: yAxisChartData,
             items: items,
             lineColor: getLineColor(data: data),
-            previousCloseRuleMarkValue: previousCloseRuleMarkValue(data: data, yAxisData: yAxisChartData)
+            previousCloseRuleMarkValue: previousCloseRuleMarkValue(data: data, yAxisData: yAxisChartData),
+            periodSummary: periodSummary(data)
         )
     }
     
@@ -230,6 +234,22 @@ class ChartViewModel: ObservableObject {
             }
         }
         return .blue
+    }
+    
+    private func periodSummary(_ data: ChartData) -> ChartPeriodSummary? {
+        guard let firstClose = data.indicators.first?.close,
+              let low = data.indicators.map(\.low).min(),
+              let high = data.indicators.map(\.high).max()
+        else {
+            return nil
+        }
+        
+        return ChartPeriodSummary(
+            title: selectedRange.summaryTitle,
+            startPrice: selectedRange == .oneDay ? data.meta.previousClose ?? firstClose : firstClose,
+            low: low,
+            high: high
+        )
     }
     
 }

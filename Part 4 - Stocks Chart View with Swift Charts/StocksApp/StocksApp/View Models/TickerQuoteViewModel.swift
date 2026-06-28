@@ -13,6 +13,10 @@ import XCAStocksAPI
 class TickerQuoteViewModel: ObservableObject {
     
     @Published var phase = FetchPhase<Quote>.initial
+    @Published var companyDescription: String?
+    @Published var companyIndustry: String?
+    @Published var fullTimeEmployees: Int?
+    @Published var comparableStocks: [String] = []
     var quote: Quote? { phase.value }
     var error: Error? { phase.error }
     
@@ -33,7 +37,7 @@ class TickerQuoteViewModel: ObservableObject {
         do {
             let response = try await stocksAPI.fetchQuotes(symbols: ticker.symbol)
             if let quote = response.first {
-                phase = .success(await quoteWithFiftyTwoWeekRangeIfNeeded(quote))
+                phase = .success(await preparedQuote(quote))
             } else {
                 phase = .empty
             }
@@ -41,6 +45,11 @@ class TickerQuoteViewModel: ObservableObject {
             error.logForDebug(context: "TickerQuoteViewModel.fetchQuote")
             await fetchQuoteFromChartData(fallbackError: error)
         }
+    }
+    
+    func enrichQuoteIfNeeded() async {
+        guard let quote else { return }
+        phase = .success(await preparedQuote(quote))
     }
     
     private func fetchQuoteFromChartData(fallbackError: Error) async {
@@ -52,7 +61,7 @@ class TickerQuoteViewModel: ObservableObject {
                 return
             }
             
-            phase = .success(await quoteWithFiftyTwoWeekRangeIfNeeded(fallbackQuote))
+            phase = .success(await preparedQuote(fallbackQuote))
         } catch {
             error.logForDebug(context: "TickerQuoteViewModel.fetchQuoteFromChartData")
             phase = .failure(fallbackError)
@@ -78,6 +87,51 @@ class TickerQuoteViewModel: ObservableObject {
             regularMarketDayHigh: chartData.indicators.map(\.high).max(),
             regularMarketDayLow: chartData.indicators.map(\.low).min()
         )
+    }
+    
+    private func preparedQuote(_ quote: Quote) async -> Quote {
+        let supplementedQuote = await quoteWithSupplementIfNeeded(quote)
+        return await quoteWithFiftyTwoWeekRangeIfNeeded(supplementedQuote)
+    }
+    
+    private func quoteWithSupplementIfNeeded(_ quote: Quote) async -> Quote {
+        guard quote.regularMarketVolume == nil ||
+                quote.trailingPE == nil ||
+                quote.marketCap == nil ||
+                quote.averageDailyVolume3Month == nil ||
+                quote.epsTrailingTwelveMonths == nil ||
+                companyDescription == nil ||
+                companyIndustry == nil ||
+                fullTimeEmployees == nil ||
+                comparableStocks.isEmpty
+        else {
+            return quote
+        }
+        
+        do {
+            guard let supplement = try await stocksAPI.fetchQuoteSupplement(symbol: ticker.symbol) else {
+                return quote
+            }
+            
+            companyDescription = supplement.companyDescription ?? companyDescription
+            companyIndustry = supplement.industry ?? companyIndustry
+            fullTimeEmployees = supplement.fullTimeEmployees ?? fullTimeEmployees
+            if !supplement.comparableStocks.isEmpty {
+                comparableStocks = supplement.comparableStocks
+            }
+            
+            return copyQuote(
+                quote,
+                regularMarketVolume: quote.regularMarketVolume ?? supplement.regularMarketVolume,
+                trailingPE: quote.trailingPE ?? supplement.trailingPE,
+                marketCap: quote.marketCap ?? supplement.marketCap,
+                averageDailyVolume3Month: quote.averageDailyVolume3Month ?? supplement.averageDailyVolume3Month,
+                epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths ?? supplement.epsTrailingTwelveMonths
+            )
+        } catch {
+            error.logForDebug(context: "TickerQuoteViewModel.quoteWithSupplementIfNeeded")
+            return quote
+        }
     }
     
     private func quoteWithFiftyTwoWeekRangeIfNeeded(_ quote: Quote) async -> Quote {
@@ -116,7 +170,16 @@ class TickerQuoteViewModel: ObservableObject {
         return (low, high)
     }
     
-    private func copyQuote(_ quote: Quote, fiftyTwoWeekLow: Double?, fiftyTwoWeekHigh: Double?) -> Quote {
+    private func copyQuote(
+        _ quote: Quote,
+        regularMarketVolume: Double? = nil,
+        trailingPE: Double? = nil,
+        marketCap: Double? = nil,
+        fiftyTwoWeekLow: Double? = nil,
+        fiftyTwoWeekHigh: Double? = nil,
+        averageDailyVolume3Month: Double? = nil,
+        epsTrailingTwelveMonths: Double? = nil
+    ) -> Quote {
         Quote(
             symbol: quote.symbol,
             currency: quote.currency,
@@ -133,14 +196,14 @@ class TickerQuoteViewModel: ObservableObject {
             regularMarketOpen: quote.regularMarketOpen,
             regularMarketDayHigh: quote.regularMarketDayHigh,
             regularMarketDayLow: quote.regularMarketDayLow,
-            regularMarketVolume: quote.regularMarketVolume,
-            trailingPE: quote.trailingPE,
-            marketCap: quote.marketCap,
-            fiftyTwoWeekLow: fiftyTwoWeekLow,
-            fiftyTwoWeekHigh: fiftyTwoWeekHigh,
-            averageDailyVolume3Month: quote.averageDailyVolume3Month,
+            regularMarketVolume: regularMarketVolume ?? quote.regularMarketVolume,
+            trailingPE: trailingPE ?? quote.trailingPE,
+            marketCap: marketCap ?? quote.marketCap,
+            fiftyTwoWeekLow: fiftyTwoWeekLow ?? quote.fiftyTwoWeekLow,
+            fiftyTwoWeekHigh: fiftyTwoWeekHigh ?? quote.fiftyTwoWeekHigh,
+            averageDailyVolume3Month: averageDailyVolume3Month ?? quote.averageDailyVolume3Month,
             trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
-            epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths
+            epsTrailingTwelveMonths: epsTrailingTwelveMonths ?? quote.epsTrailingTwelveMonths
         )
     }
     
